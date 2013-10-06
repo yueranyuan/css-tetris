@@ -1,7 +1,9 @@
-define(function() {
+define(['pieces'], function(pieceDict) {
 
-    var SCALE = 0;
+    var SCALE = 10;
     var WORLD;
+    var ROWS = 10;
+    var COLUMNS = 22;
 
     init = function() {
         WORLD = $('#world');
@@ -9,30 +11,51 @@ define(function() {
 
     run = function() {
         init();
-        makeCell(1, 6, 'red');
-    };
+        x = 0;
+        for (var letter in pieceDict) {
+            makePiece((++x) * 4, 5, letter);
+        }
+    }; 
 
-    parsePx = function(px) {
+    pxToInt = function(px) {
         return parseInt(px.slice(0, -2));
+    }
+
+    intToPx = function(val) {
+        return val + 'px';
+    }
+
+    makePiece = function(x, y, letter) {
+        var div = $('<div>', {class: "piece"});
+        div.css({
+            "left": intToPx(x * SCALE),
+            "top": intToPx(y * SCALE)});
+        
+        pieceInfo = pieceDict[letter];
+        color  = pieceInfo.color;
+        cells = pieceInfo.cells;
+        for (var y = 0; y < cells.length; y++) {
+            for (var x = 0; x < cells[0].length; x++) {
+                if (cells[y][x]) {
+                    div.append(makeCell(x, y, color));
+                }
+            }
+        }
+
+        WORLD.append(div);
     }
 
     makeCell = function(x, y, color) {
         var div = $('<div>', {class: "cell"});
 
-        // place the div in the world so we can access the width
-        div.css('visibility', 'hidden'); // make invisible while placing
-        WORLD.append(div);
-
-        SCALE = SCALE || parseInt(div.css('width').slice(0, -2));
-        world_x = SCALE * x;
-        world_y = SCALE * y;
+        div.css('width', intToPx(SCALE)); // make invisible while placing
+        div.css('height', intToPx(SCALE)); // make invisible while placing
 
         div.css({
             "background-color": color,
-            "left": world_x + 'px',
-            "top": world_y + 'px'});
+            "left": intToPx(x * SCALE),
+            "top": intToPx(y * SCALE)});
 
-        div.css('visibility', 'visible'); // show after processing is done
         return div;
     };
 
