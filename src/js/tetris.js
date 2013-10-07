@@ -22,45 +22,62 @@ define(['pieces'], function(pieceDict) {
 
     update = function() {
         if (!current) {
-            current = makePiece(3, 0, 'L');
+            current = makePiece(vec(3, 0), 'L');
         }
 
-        move(current, 0, 1);
-        if (!collide(0, 1)) {
+        move(current, vec(0, 1));
+        if (!collide(vec(0, 1))) {
             lockPiece(current);
         }
     }
 
-    getX = function(thing) {
-        return pxToInt(thing.css('left'));
+    getPos = function(thing) {
+        return {
+            x: pxToInt(thing.css('left')),
+            y: pxToInt(thing.css('top'))};
     }
 
-    getY = function(thing) {
-        return pxToInt(thing.css('top'));
+    setPos = function(thing, pos) {
+        thing.css({'left': intToPx(pos.x),
+                'top': intToPx(pos.y)});
     }
 
-    move = function(thing, dx, dy) {
-        var x = pxToInt(thing.css('left')) + dx * SCALE;
-        var y = pxToInt(thing.css('top')) + dy * SCALE;
-        thing.css({'left': intToPx(x),
-                'top': intToPx(y)});
+    vecAdd = function(a, b) {
+        a.x += b.x;
+        a.y += b.y;
+        return a;
     }
 
-    collide = function(x, y) {
-        var p_x = getX(current) + x * SCALE;
-        var p_y = getY(current) + y * SCALE;
+    vecMult = function(a, s) {
+        a.x *= s;
+        a.y *= s;
+        return a;
+    }
+
+    vec = function(x, y) {
+        return {x: x, y: y};
+    }
+
+    move = function(thing, dir) {
+        pos = vecAdd(getPos(thing), vecMult(dir, SCALE));
+        setPos(thing, pos);
+        thing.css({'left': intToPx(pos.x),
+                'top': intToPx(pos.y)});
+    }
+
+    collide = function(dir) {
+        var p_pos = vecAdd(getPos(current), vecMult(dir, SCALE));
         var good = true;
         current.children().each(function() {
             var cell = $(this);
-            var x = Math.floor((pxToInt(cell.css('left')) + p_x) / SCALE);
-            var y = Math.floor((pxToInt(cell.css('top')) + p_y) / SCALE);
-            good = good && checkBoard(x, y);
+            var pos = vecMult(vecAdd(getPos(cell), p_pos), 1/SCALE);
+            good = good && checkBoard(pos);
         });
         return good;
     }
 
-    checkBoard = function(x, y) {
-        return !!(board[y] && board[y][x] == null);
+    checkBoard = function(pos) {
+        return !!(board[pos.y] && board[pos.y][pos.x] == null);
     }
 
     run = function() {
@@ -79,30 +96,23 @@ define(['pieces'], function(pieceDict) {
     }
 
     lockPiece = function(piece) {
-        var p_x = pxToInt(piece.css('left'));
-        var p_y = pxToInt(piece.css('top'));
+        var p_pos = getPos(piece);
         piece.children().each(function() {
             var cell = $(this);
-            var x = pxToInt(cell.css('left')) + p_x;
-            var y = pxToInt(cell.css('top')) + p_y;
-            cell.css({
-                'left': x,
-                'top': y});
+            var pos = vecAdd(getPos(cell), p_pos);
+            setPos(cell, pos);
             WORLD.append(cell);
 
             // write to board
-            b_y = Math.floor(y / SCALE);
-            b_x = Math.floor(x / SCALE);
-            board[b_y][b_x] = cell;
+            var b_pos = vecMult(pos, 1 / SCALE);
+            board[b_pos.y][b_pos.x] = cell;
         });
         piece.remove();
     }
 
-    makePiece = function(x, y, letter) {
+    makePiece = function(pos, letter) {
         var div = $('<div>', {class: "piece"});
-        div.css({
-            "left": intToPx(x * SCALE),
-            "top": intToPx(y * SCALE)});
+        setPos(div, vecMult(pos, SCALE));
         
         pieceInfo = pieceDict[letter];
         color  = pieceInfo.color;
@@ -110,7 +120,7 @@ define(['pieces'], function(pieceDict) {
         for (var y = 0; y < cells.length; y++) {
             for (var x = 0; x < cells[0].length; x++) {
                 if (cells[y][x]) {
-                    div.append(makeCell(x, y, color));
+                    div.append(makeCell(vec(x, y), color));
                 }
             }
         }
@@ -119,16 +129,14 @@ define(['pieces'], function(pieceDict) {
         return div;
     }
 
-    makeCell = function(x, y, color) {
+    makeCell = function(pos, color) {
         var div = $('<div>', {class: "cell"});
 
         div.css('width', intToPx(SCALE));
         div.css('height', intToPx(SCALE));
 
-        div.css({
-            "background-color": color,
-            "left": intToPx(x * SCALE),
-            "top": intToPx(y * SCALE)});
+        div.css("background-color", color);
+        setPos(div, vecMult(pos, SCALE));
 
         return div;
     };
