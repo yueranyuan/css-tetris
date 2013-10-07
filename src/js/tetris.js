@@ -18,6 +18,20 @@ define(['pieces'], function(pieceDict) {
                 board[y][x] = null;
             }
         }
+
+        $(document).keydown(function(event) {
+            if (!current) {
+                return;
+            }
+
+            if (event.which == 38) {
+                explore(rotatePiece);
+            } else if (event.which == 37) {
+                explore(move, vec(-1, 0));
+            } else if (event.which == 39) {
+                explore(move, vec(1, 0));
+            }
+        });
     }
 
     update = function() {
@@ -25,9 +39,11 @@ define(['pieces'], function(pieceDict) {
             current = makePiece(vec(3, 0), 'L');
         }
 
-        move(current, vec(0, 1));
-        if (!collide(vec(0, 1))) {
+        if (!collide(current, vec(0, 1))) {
             lockPiece(current);
+            current = makePiece(vec(3, 0), 'L');
+        } else {
+            move(current, vec(0, 1));
         }
     }
 
@@ -61,14 +77,12 @@ define(['pieces'], function(pieceDict) {
     move = function(thing, dir) {
         pos = vecAdd(getPos(thing), vecMult(dir, SCALE));
         setPos(thing, pos);
-        thing.css({'left': intToPx(pos.x),
-                'top': intToPx(pos.y)});
     }
 
-    collide = function(dir) {
-        var p_pos = vecAdd(getPos(current), vecMult(dir, SCALE));
+    collide = function(piece, dir) {
+        var p_pos = vecAdd(getPos(piece), vecMult(dir, SCALE));
         var good = true;
-        current.children().each(function() {
+        piece.children().each(function() {
             var cell = $(this);
             var pos = vecMult(vecAdd(getPos(cell), p_pos), 1/SCALE);
             good = good && checkBoard(pos);
@@ -77,7 +91,7 @@ define(['pieces'], function(pieceDict) {
     }
 
     checkBoard = function(pos) {
-        return !!(board[pos.y] && board[pos.y][pos.x] == null);
+        return !!(board[pos.y] && board[pos.y][pos.x] === null);
     }
 
     run = function() {
@@ -93,6 +107,35 @@ define(['pieces'], function(pieceDict) {
 
     intToPx = function(val) {
         return val + 'px';
+    }
+
+    explore = function(fn) {
+        var explorer = current.clone();
+        var args = Array.prototype.slice.call(arguments, 1);
+        args.unshift(explorer);
+        fn.apply(this, args);
+        if (collide(explorer, vec(0, 0))) {
+            current.remove();
+            current = explorer; 
+            WORLD.append(explorer);
+        }
+    }
+
+    rotatePiece = function(piece, dir) {
+        piece.children().each(function() {
+            var cell = $(this);
+            var pos = getPos(cell);
+            if (dir == 1) {
+                temp = pos.y;
+                pos.y = pxToInt(current.css('width')) - SCALE - pos.x;
+                pos.x = temp;
+            } else {
+                temp = pos.x;
+                pos.x = pxToInt(current.css('width')) - SCALE - pos.y;
+                pos.y = temp;
+            }
+            setPos(cell, pos);
+        });
     }
 
     lockPiece = function(piece) {
@@ -124,6 +167,9 @@ define(['pieces'], function(pieceDict) {
                 }
             }
         }
+        div.css({
+            width: intToPx(SCALE * cells.length),
+            height: intToPx(SCALE * cells.length)});
 
         WORLD.append(div);
         return div;
