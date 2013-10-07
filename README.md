@@ -1,4 +1,19 @@
-css-tetris
+Css-Tetris
 ==========
 
-The intention here is to build an in browser version of tetris that (1) is fast and (2) feels natural to expert tetris players.
+## Project Goals
+
+###Main Goal
+
+1. The gameplay must feel natural to expert players
+
+2. Once that is achieved, make it minimal
+
+###Secondary Goal
+
+* Avoid canvas
+* Make all data loggable via AJAX
+
+## How To Run
+
+  google-chrome index.html
