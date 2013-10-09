@@ -30,21 +30,73 @@ define(['pieces'], function(pieceDict) {
                 explore(move, vec(-1, 0));
             } else if (event.which == 39) {
                 explore(move, vec(1, 0));
+            } else if (event.which == 40) {
+                gravity(current);
+            } else if (event.which == 32) {
+                while (!gravity(current)) {}
             }
         });
     }
 
-    update = function() {
+    spawnPiece = function() {
+        current = makePiece(vec(3, 0), 'L');
+        checkLine();
+    }
+
+    checkLine = function() {
+        // find cleared lines
+        var baseLine = 0;
+        var lineCnt = 0;
+        $.each(board, function(y, row) {
+            var good = true;
+            $.each(row, function(idx, cell) {
+                good = good && (cell != null)
+            });
+            // clear line
+            if (good) {
+                console.log('clearing');
+                $.each(row, function(idx, cell) {
+                    cell.remove();
+                    row[idx] = null;
+                });
+                baseLine = Math.max(y, baseLine);
+                lineCnt += 1;
+            }
+        });
+
+        // clear line
+        if (lineCnt > 0) {
+            for (var y = baseLine - lineCnt; y >= 0; y--) {
+                var row = board[y];
+                board[y] = board[y + lineCnt];
+                board[y + lineCnt] = row;
+                $.each(row, function(idx, cell) {
+                    if (cell) {
+                        move(cell, vec(0, lineCnt));
+                    }
+                });
+            }
+        }
+    }
+
+    update = function(complete) {
         if (!current) {
-            current = makePiece(vec(3, 0), 'L');
+            spawnPiece();
         }
 
-        if (!collide(current, vec(0, 1))) {
+        if (gravity(current)) {
             lockPiece(current);
-            current = makePiece(vec(3, 0), 'L');
-        } else {
-            move(current, vec(0, 1));
+            complete();
         }
+        setTimeout(function() {update(complete)}, 500);
+    }
+
+    gravity = function(piece) {
+        if (!collide(piece, vec(0, 1))) {
+            return true;
+        }
+        move(piece, vec(0, 1));
+        return false;
     }
 
     getPos = function(thing) {
@@ -97,8 +149,7 @@ define(['pieces'], function(pieceDict) {
     run = function() {
         init();
         y = 0;
-        update();
-        setInterval(update, 500);
+        update(spawnPiece);
     }; 
 
     pxToInt = function(px) {
